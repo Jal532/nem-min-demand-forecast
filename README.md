@@ -54,6 +54,15 @@ warning window, and a single point location may not represent cloud cover across
 whole rooftop solar fleet. Noted as a direction for future work rather than pursued
 further, given the small (n=14) episode sample.
 
+**An LSTM sequence model was also tested** as a comparison to the hand-engineered
+feature approach, trained with the same leakage-safe threshold validation procedure.
+It matched XGBoost's episode recall (12/14) but with a shorter median lead time
+(27.5 vs. 42.5 minutes) and marginally lower PR-AUC (0.973 vs. 0.977). This is a
+plausible result given data volume: the training set contains only a few dozen
+independent breach episodes across 2023–2025, likely too few for an LSTM to learn
+temporal structure that was already hand-encoded as lag/cyclic features for XGBoost.
+XGBoost @ validated threshold is used as the project's primary model.
+
 **Methodology notes:**
 - Evaluated at both row level (PR-AUC) and episode level (recall, lead time, false
   alarms), since row-level metrics treat highly correlated 5-minute rows as
@@ -65,7 +74,6 @@ further, given the small (n=14) episode sample.
   echoing current demand.
 
 ### Next steps
-- LSTM sequence model, evaluated with the same episode-level methodology
 - Interactive Tableau dashboard
 - Investigate finer-grained/satellite weather data as a follow-up to the inconclusive
   weather experiment above
