@@ -7,17 +7,19 @@ This threatens grid stability, since fewer synchronous generators (coal, gas, hy
 stay online to provide inertia and voltage support when demand is very low. AEMO has
 flagged this as a live operational risk requiring emergency intervention capability.
 
-This project explores that problem using real NEM market data, with the eventual goal
-of (1) forecasting minimum-demand risk ahead of time, and (2) using generative models
-to synthesize rare extreme-demand scenarios that historical data doesn't provide enough
-examples of.
+This project explores that problem using real NEM market data, and builds an early-warning
+classifier that predicts, up to 3 hours ahead, whether South Australian demand will fall
+below 200 MW.
 
 ## Data
 - AEMO Aggregated Price and Demand data (public, no auth required):
   https://www.aemo.com.au/energy-systems/electricity/national-electricity-market-nem/data-nem/aggregated-data
-- Currently using January 2026, regions NSW1 and SA1, at 30-minute resolution.
+- **Modeling:** SA1 (South Australia), summer months (Dec/Jan/Feb) from 2023–2026, at
+  5-minute resolution.
+- **EDA:** NSW1 and SA1, January 2026, plus SA1 June 2026 for the seasonal comparison.
+- Raw CSVs are not committed (re-downloadable from the link above).
 
-## Status: baseline + gradient boosting models complete, LSTM next
+## Status: modeling complete (baseline, XGBoost, LSTM); 
 
 ### EDA findings
 - **NSW1 price is threshold-driven, not linear with demand.** Price stays near zero
@@ -39,6 +41,7 @@ Trained on 2023–2025 summer data (Dec/Jan/Feb), evaluated on held-out 2026 dat
 | XGBoost @ 0.5 threshold | 0.977 | 14 | 71% (10/14) | 27.5 min | 5 |
 | **XGBoost @ validated threshold (0.1)** | **0.977** | **14** | **86% (12/14)** | **42.5 min** | **5** |
 | XGBoost + weather features | 0.974 | 14 | 86% (12/14) | 37.5 min | 6 |
+| LSTM @ validated threshold (0.4) | 0.973 | 14 | 86% (12/14) | 27.5 min | 5 |
 
 **Key finding:** row-level PR-AUC (0.977) looked near-perfect, but evaluating at the
 *episode* level — merging consecutive alarm rows into discrete breach events — showed
@@ -73,9 +76,21 @@ XGBoost @ validated threshold is used as the project's primary model.
   0.404, confirming the models learn genuine forward-looking signal rather than
   echoing current demand.
 
-### Next steps
-- Interactive Tableau dashboard
-- Investigate finer-grained/satellite weather data as a follow-up to the inconclusive
-  weather experiment above
+### Limitations
+- The test set contains only 14 breach episodes from a single summer (2026), so episode-level
+  percentages have wide uncertainty (e.g. 12/14 ≈ 86%, 95% interval roughly 60–96%).
+- Thresholds and results are specific to SA1 and a 200 MW definition of "breach"; sensitivity
+  to other thresholds was not tested.
+- The weather-feature explanation above is a hypothesis; it was not tested directly.
 
+## Project structure
+- `notebooks/0.1_explore_data.ipynb`: EDA (NSW price thresholds, SA negative demand)
+- `notebooks/0.2_baseline_model.ipynb`: logistic regression baseline
+- `notebooks/0.3_gradient_boosting.ipynb`: XGBoost, persistence baseline, onset-only evaluation
+- `notebooks/0.4_episode_eval_and_weather.ipynb`: episode-level evaluation, threshold validation, weather features
+- `notebooks/0.5_lstm.ipynb`: LSTM comparison
+- `requirements.txt`: dependencies
+
+## Reproducing
+Download the monthly SA1 CSVs from the AEMO link above into `data/`, `pip install -r requirements.txt`, then run the notebooks in order.
 
